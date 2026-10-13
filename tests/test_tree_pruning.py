@@ -52,6 +52,24 @@ def test_pruning_k_one_retains_one_hop_context():
     assert tree_to_dist(len(tokens), tree).tolist() == [0, 0, 0, -1, 1]
 
 
+def test_pruning_k_two_retains_two_hop_context():
+    tokens, heads, subj_pos, obj_pos = toy_dependency_example()
+    tree = head_to_tree(heads, tokens, len(tokens), 2, subj_pos, obj_pos)
+
+    assert set(node.idx for node in tree) == {0, 1, 2, 3, 4}
+    assert tree_to_dist(len(tokens), tree).tolist() == [0, 0, 0, 2, 1]
+
+
+def test_node_retention_is_monotonic_as_k_increases():
+    tokens, heads, subj_pos, obj_pos = toy_dependency_example()
+    retained = []
+    for k in (0, 1, 2):
+        tree = head_to_tree(heads, tokens, len(tokens), k, subj_pos, obj_pos)
+        retained.append(set(node.idx for node in tree))
+
+    assert retained[0] < retained[1] < retained[2]
+
+
 def test_adjacency_matrix_can_be_undirected_with_self_loops():
     tokens, heads, subj_pos, obj_pos = toy_dependency_example()
     tree = head_to_tree(heads, tokens, len(tokens), 1, subj_pos, obj_pos)

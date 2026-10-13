@@ -1,139 +1,258 @@
-# Syntax-Aware Relation Extraction with GCNs
+# Syntax-Aware Relation Extraction with Graph Convolutional Networks
 
-This repository is a reproduction-oriented study of **Graph Convolution over Pruned Dependency Trees for Relation Extraction**, based on Zhang, Qi, and Manning (EMNLP 2018). It keeps the original research architecture intact while adding lightweight modernization, clearer documentation, focused tests, and a dependency pruning visualization tool.
+**Exploring graph-based relation extraction through dependency-tree pruning, GCN/C-GCN architecture analysis, and lightweight reproducible experiments.**
 
-The goal is not to report new model scores. No training, retraining, TACRED download, GloVe download, or benchmark claim is included in this adaptation.
+Maintainer: **Nour Ghribi - AI & Data Science Engineering Student**  
+GitHub: [Nour-Ghribi](https://github.com/Nour-Ghribi)
 
-## Relation extraction example
+This repository is a professionalized, reproduction-oriented adaptation of the EMNLP 2018 work **Graph Convolution over Pruned Dependency Trees Improves Relation Extraction** by Zhang, Qi, and Manning. It preserves the original GCN/C-GCN research architecture while adding engineering improvements, reproducible CPU checks, dependency-pruning analysis, and technical documentation.
 
-Relation extraction predicts a semantic relation between two marked entities in a sentence:
+No model training, retraining, large dataset download, pretrained embedding download, or benchmark claim is included in this version.
+
+## Project Overview
+
+Relation extraction predicts the semantic relation between two marked entities in a sentence. For example:
 
 > "John founded Acme in Paris."
 
-Given `John` as the subject and `Acme` as the object, a model may predict a relation such as `org:founded_by`. This project studies a syntax-aware approach: instead of relying only on word order, it uses a dependency parse so the model can focus on the grammatical path connecting the two entities.
+With `John` as the subject and `Acme` as the object, a relation extraction system may predict a relation such as `org:founded_by`.
 
-## Main ideas
+Syntax matters because the shortest grammatical path between the subject and object often removes irrelevant words while preserving the dependency structure that connects the entities. This project studies that idea with graph convolutional networks: a dependency parse is converted into a graph, optionally pruned around the subject-object dependency path, encoded by GCN layers, pooled at graph and entity levels, and classified into a relation label.
 
-- **Dependency parsing** represents a sentence as a graph of syntactic head-dependent edges.
-- **Shortest dependency path** is the dependency path connecting the subject and object mentions.
-- **Path-centric pruning** keeps nodes on that path and optionally nearby context. The pruning distance `k` means:
-  - `k=0`: keep only nodes on the subject-object dependency path.
-  - `k=1`: also keep nodes one dependency edge away from the path.
-  - `k=2`: keep nodes up to two dependency edges away.
-- **GCN** applies graph convolution over the pruned dependency graph.
-- **C-GCN** adds a BiLSTM contextual encoder before the GCN layers.
-- **Pooling and classification** combine sentence-level, subject-level, and object-level representations for relation classification.
+## My Engineering Contributions
 
-## Architecture
+These are the engineering contributions added around the inherited research implementation. They do not claim ownership of the original GCN/C-GCN model design.
+
+1. **Modernized the original PyTorch research implementation.** Updated small Python 3 and modern PyTorch compatibility issues while preserving the original model flow.
+2. **Corrected broken module imports.** The original code expected `data`, `model`, and `utils` packages that were not present in this flat repository layout; imports now match the actual source tree.
+3. **Improved CPU-compatible execution paths.** Synthetic GCN and C-GCN forward-pass checks now run on CPU without requiring CUDA or trained weights.
+4. **Added dependency tree pruning visualization.** `tools/visualize_dependency_pruning.py` reconstructs the dependency tree, identifies the subject-object path, applies the repository pruning logic, and saves SVG visualizations.
+5. **Added comparative pruning analysis for `k=0`, `k=1`, and `k=2`.** The generated figure `assets/pruning_comparison.svg` compares the full dependency tree with progressively retained pruned graphs and reports retained-node counts.
+6. **Added GCN vs. C-GCN structural inspection.** `tools/inspect_architectures.py` instantiates both variants, counts parameters, verifies CPU forward passes, and writes Markdown/JSON reports.
+7. **Added synthetic forward-pass verification.** Tests verify output tensor shapes for both GCN and C-GCN without training or evaluating a model.
+8. **Expanded automated testing.** The test suite covers pruning, shortest-path metadata, adjacency matrices, visualization generation, architecture inspection, and CPU execution.
+9. **Rebuilt the technical README.** The documentation now clearly separates inherited research components from this repository's engineering extensions.
+
+## Model Architecture
 
 ```mermaid
 flowchart LR
-    A[TACRED-style JSON] --> B[Tokens, POS, NER, dependency heads]
-    B --> C[Subject/object span markers]
-    C --> D[Dependency tree reconstruction]
-    D --> E[Path-centric pruning with k]
-    E --> F[Adjacency matrix]
-    B --> G[Word, POS, NER embeddings]
-    G --> H{C-GCN?}
-    H -->|yes| I[BiLSTM encoder]
-    H -->|no| J[Embedding sequence]
-    I --> K[GCN layers]
-    J --> K
-    F --> K
-    K --> L[Max/avg/sum pooling]
-    L --> M[Relation classifier]
+    A[Input sentence + subject/object spans] --> B[Tokens, POS, NER]
+    A --> C[Dependency parse heads + dependency labels]
+    B --> D[Word/POS/NER embeddings]
+    C --> E[Dependency tree reconstruction]
+    E --> F[Shortest subject-object dependency path]
+    F --> G[Path-centric pruning with k]
+    G --> H[Adjacency matrix]
+    D --> I{C-GCN variant?}
+    I -->|No: GCN| J[Embedding sequence]
+    I -->|Yes: C-GCN| K[BiLSTM contextual encoder]
+    J --> L[GCN layers]
+    K --> L
+    H --> L
+    L --> M[Graph-level pooling]
+    L --> N[Subject/object entity pooling]
+    M --> O[Relation classifier]
+    N --> O
 ```
 
-## Repository structure
+**GCN** uses word, POS, and NER embeddings as graph node features before graph convolution.  
+**C-GCN** adds a BiLSTM encoder before the graph convolution layers, so each token representation is contextualized by sequence order before dependency-graph propagation.
+
+The implemented classifier concatenates graph-level pooled features with subject-level and object-level pooled features, then applies an MLP and relation classifier.
+
+## Dependency Pruning Explained
+
+Path-centric pruning keeps the dependency path connecting the subject and object, plus optional nearby context.
+
+- `k=0`: keep only nodes on the subject-object dependency path.
+- `k=1`: keep path nodes and nodes one dependency edge away from the path.
+- `k=2`: keep path nodes and nodes up to two dependency edges away.
+
+The comparison below was generated from `train.json`, example index `0`.
+
+- Example id: `61b3a65fb906688c92a1`
+- Subject: `her`
+- Object: `Jake`
+- Gold relation in the sample: `no_relation`
+- Shortest dependency path tokens: `Jake`, `end`, `show`, `her`
+
+![Dependency pruning comparison](assets/pruning_comparison.svg)
+
+| Pruning distance | Retained nodes | Total nodes | Retained percentage | Retained tokens |
+| --- | ---: | ---: | ---: | --- |
+| `k=0` | 4 | 22 | 18.18% | `Jake`, `end`, `show`, `her` |
+| `k=1` | 10 | 22 | 45.45% | `if`, `Jake`, `would`, `end`, `the`, `show`, `to`, `be`, `with`, `her` |
+| `k=2` | 10 | 22 | 45.45% | `if`, `Jake`, `would`, `end`, `the`, `show`, `to`, `be`, `with`, `her` |
+
+For this specific example, `k=2` retains the same nodes as `k=1` because there are no additional nodes at distance two from the retained path under the implemented pruning logic.
+
+## GCN vs. C-GCN
+
+The following table is generated by `tools/inspect_architectures.py` using synthetic CPU tensors. It is a structural comparison, not a performance benchmark.
+
+| Architecture | BiLSTM | GCN layers | Hidden dim | Pooling | Parameters | CPU forward | Logits shape | Pooled shape |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| GCN | False | 2 | 12 | max | 2581 | True | [2, 5] | [2, 12] |
+| C-GCN | True | 2 | 12 | max | 4261 | True | [2, 5] | [2, 12] |
+
+The GCN variant tests graph convolution over dependency-derived adjacency matrices directly from token-level embeddings. The C-GCN variant first applies a BiLSTM, which can encode sequential context before syntactic graph propagation. This repository verifies that both variants instantiate and execute on CPU, but it does not claim that one performs better than the other.
+
+Reports are saved under:
+
+- `reports/architecture_comparison.md`
+- `reports/architecture_comparison.json`
+
+## Experimental Validation
+
+Executed validation is intentionally lightweight and reproducible:
+
+- Unit tests for dependency tree construction and shortest-path metadata.
+- Pruning checks for `k=0`, `k=1`, and `k=2`.
+- Node-retention monotonicity checks as `k` increases.
+- Adjacency matrix dimension and undirected symmetry checks.
+- Synthetic GCN and C-GCN CPU forward-pass shape checks.
+- Visualization output generation tests.
+- Architecture inspection report generation.
+
+Latest local result:
+
+```bash
+python -m pytest -q
+# 12 passed in 14.00s
+```
+
+These checks validate code paths and architecture structure. They are not TACRED training runs and do not reproduce paper F1 scores.
+
+## Repository Structure
 
 ```text
 .
-├── gcn.py                         # GCN and C-GCN model modules
-├── tree.py                        # Dependency tree construction and pruning logic
-├── loader.py                      # TACRED-style JSON preprocessing and batching
-├── trainer.py                     # Training/prediction wrapper
-├── train.py / eval.py             # Original training and evaluation entry points
-├── prepare_vocab.py / vocab.py    # Vocabulary and embedding preparation
-├── tools/
-│   └── visualize_dependency_pruning.py
+├── assets/
+│   ├── dependency_pruning_k1.svg
+│   └── pruning_comparison.svg
+├── reports/
+│   ├── architecture_comparison.json
+│   └── architecture_comparison.md
 ├── tests/
-│   ├── test_tree_pruning.py
 │   ├── test_gcn_forward.py
+│   ├── test_tree_pruning.py
 │   └── test_visualizer.py
+├── tools/
+│   ├── inspect_architectures.py
+│   └── visualize_dependency_pruning.py
+├── gcn.py
+├── tree.py
+├── loader.py
+├── trainer.py
+├── train.py
+├── eval.py
+├── prepare_vocab.py
+├── vocab.py
+├── constant.py
+├── torch_utils.py
+├── scorer.py
 ├── train.json / dev.json / test.json
-└── requirements.txt
+├── requirements.txt
+├── LICENSE
+└── README.md
 ```
 
-## Technologies
+## Getting Started
 
-- Python 3
-- PyTorch
-- NumPy
-- NetworkX and Matplotlib for dependency graph visualization
-- pytest for lightweight tests
-
-The original code was written for older PyTorch versions. This version includes small portability fixes, but full training compatibility on modern environments is not claimed unless you verify it locally with the required data and embeddings.
-
-## Installation
+Create an environment and install dependencies:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+```
+
+Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-## Visualize dependency pruning
+macOS/Linux:
 
-The visualizer runs on the small sample JSON files included in the repository and does not require model weights.
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Run tests:
+
+```bash
+python -m pytest -q
+```
+
+Generate the pruning comparison:
+
+```bash
+python tools/visualize_dependency_pruning.py --input train.json --index 0 --comparison --output assets/pruning_comparison.svg
+```
+
+Generate the architecture inspection reports:
+
+```bash
+python tools/inspect_architectures.py
+```
+
+Generate a single pruning visualization:
 
 ```bash
 python tools/visualize_dependency_pruning.py --input train.json --index 0 --k 1 --output assets/dependency_pruning_k1.svg
 ```
 
-Try different pruning distances:
+## Dataset and Training Notes
 
-```bash
-python tools/visualize_dependency_pruning.py --k 0 --output assets/dependency_pruning_k0.svg
-python tools/visualize_dependency_pruning.py --k 2 --output assets/dependency_pruning_k2.svg
-```
+The original training and evaluation scripts expect TACRED-style JSON files with Stanford CoreNLP fields:
 
-The output highlights subject tokens, object tokens, shortest dependency path nodes, and retained context nodes.
+- `token`
+- `stanford_pos`
+- `stanford_ner`
+- `stanford_head`
+- `stanford_deprel`
+- subject/object spans and entity types
 
-## Run lightweight tests
+Full TACRED is not included because it requires separate dataset access. GloVe vectors and trained checkpoints are also not included. The sample JSON files in this repository are suitable for inspection, tests, and visualization, not for reporting model quality.
 
-```bash
-pytest
-```
+## Technical Skills Demonstrated
 
-The tests cover dependency tree construction, shortest-path metadata, pruning for different `k` values, adjacency matrix generation, a synthetic GCN forward pass, and visualization file generation. They do not train or evaluate a model.
+- Python research code modernization
+- PyTorch model inspection
+- NLP relation extraction
+- Graph Neural Networks and graph convolution
+- Dependency parsing and shortest dependency paths
+- Path-centric tree pruning
+- BiLSTM and contextual sequence encoding
+- Synthetic model forward-pass testing
+- NetworkX/Matplotlib visualization
+- pytest-based reproducibility checks
+- Research attribution and technical documentation
 
-## Dataset and model limitations
+## Limitations and Future Research
 
-The training pipeline expects TACRED-style JSON with Stanford CoreNLP fields such as `stanford_head`, `stanford_deprel`, `stanford_pos`, and `stanford_ner`. Full TACRED requires a license and is not included here. GloVe embeddings and trained checkpoints are also not included.
+- No retraining or fine-tuning was performed.
+- No TACRED benchmark score, F1 score, precision, recall, or accuracy is claimed.
+- Full reproduction requires licensed TACRED data and external word embeddings.
+- The architecture inspection uses synthetic tensors and validates structure, not predictive behavior.
+- Future work could explore BERT or other transformer encoders combined with dependency GCNs.
+- Future experiments could add controlled ablations for pruning distance, BiLSTM usage, pooling type, and dependency-edge directionality.
 
-The included `train.json`, `dev.json`, and `test.json` are small sample files suitable for code inspection and visualization only. They are not enough to reproduce paper results.
+## GitHub Discoverability
 
-## What is original vs. adapted
+Suggested repository description:
 
-Original implementation:
+> Syntax-aware relation extraction with GCN/C-GCN, dependency-tree pruning analysis, architecture comparisons, and reproducible PyTorch tests.
 
-- GCN and C-GCN architecture for relation extraction.
-- Dependency tree reconstruction and path-centric pruning.
-- TACRED-style preprocessing, training, evaluation, and scoring scripts.
+Suggested topics:
 
-Adaptations in this repository:
+`nlp`, `graph-neural-networks`, `gcn`, `relation-extraction`, `dependency-parsing`, `pytorch`, `bilstm`, `machine-learning`, `research-reproduction`
 
-- Fixed imports to match the actual flat source layout.
-- Updated small Python 3 and PyTorch portability issues.
-- Added `requirements.txt`.
-- Added focused tests using synthetic/sample data.
-- Added `tools/visualize_dependency_pruning.py`.
-- Rewrote the README for research clarity and honest attribution.
-- Expanded `.gitignore` for datasets, embeddings, checkpoints, and caches.
+## Research Attribution
 
-## Citation and attribution
-
-This project is based on the paper and released code for:
+This project is based on the paper and original implementation for:
 
 ```bibtex
 @inproceedings{zhang2018graph,
@@ -145,4 +264,4 @@ This project is based on the paper and released code for:
 }
 ```
 
-License: Apache License 2.0, preserved from the original repository.
+The original scientific architecture and paper attribution belong to Zhang, Qi, and Manning. This repository preserves the Apache License 2.0 license file and presents Nour Ghribi's engineering adaptations, tests, visual analysis tools, and documentation improvements around that research code.

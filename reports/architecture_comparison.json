@@ -1,0 +1,36 @@
+[
+  {
+    "architecture": "GCN",
+    "bilstm_enabled": false,
+    "gcn_layers": 2,
+    "hidden_dim": 12,
+    "pooling": "max",
+    "parameters": 2581,
+    "cpu_forward_pass": true,
+    "logits_shape": [
+      2,
+      5
+    ],
+    "pooled_shape": [
+      2,
+      12
+    ]
+  },
+  {
+    "architecture": "C-GCN",
+    "bilstm_enabled": true,
+    "gcn_layers": 2,
+    "hidden_dim": 12,
+    "pooling": "max",
+    "parameters": 4261,
+    "cpu_forward_pass": true,
+    "logits_shape": [
+      2,
+      5
+    ],
+    "pooled_shape": [
+      2,
+      12
+    ]
+  }
+]
