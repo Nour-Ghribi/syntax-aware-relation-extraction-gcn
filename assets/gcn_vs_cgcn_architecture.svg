@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="560" viewBox="0 0 1320 560" role="img" aria-labelledby="title desc">
+  <title id="title">GCN versus C-GCN architecture comparison</title>
+  <desc id="desc">Side-by-side structural comparison of GCN and C-GCN, showing that C-GCN adds a BiLSTM contextual encoder before graph convolution.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fbfd; }
+      .lane { fill: #ffffff; stroke: #d8e3ea; stroke-width: 1.5; rx: 18; }
+      .lane-title { font: 700 24px Arial, sans-serif; fill: #17324d; }
+      .caption { font: 400 13px Arial, sans-serif; fill: #53687a; }
+      .box { fill: #eef4f8; stroke: #8ca8ba; stroke-width: 1.3; rx: 12; }
+      .box-teal { fill: #edf8f5; stroke: #5fb3a3; stroke-width: 1.3; rx: 12; }
+      .box-navy { fill: #eaf0f6; stroke: #264766; stroke-width: 1.3; rx: 12; }
+      .box-highlight { fill: #fff6e3; stroke: #d8a53a; stroke-width: 1.5; rx: 12; }
+      .label { font: 700 15px Arial, sans-serif; fill: #18324a; }
+      .small { font: 400 12px Arial, sans-serif; fill: #53687a; }
+      .metric { font: 700 13px Arial, sans-serif; fill: #20384f; }
+      .arrow { stroke: #587489; stroke-width: 2.1; fill: none; marker-end: url(#arrowhead); }
+      .accent { fill: #1f6f8b; }
+      .accent2 { fill: #2d9a86; }
+      .rule { stroke: #d8e3ea; stroke-width: 1; }
+    </style>
+    <marker id="arrowhead" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#587489"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1320" height="560"/>
+  <text class="lane-title" x="660" y="44" text-anchor="middle">GCN vs. C-GCN: Structural Architecture Comparison</text>
+  <text class="caption" x="660" y="70" text-anchor="middle">Lightweight inspection configuration: synthetic CPU tensors, no training, no pretrained weights.</text>
+
+  <rect class="lane" x="55" y="112" width="1210" height="155"/>
+  <circle class="accent" cx="91" cy="147" r="9"/>
+  <text class="lane-title" x="112" y="154">GCN</text>
+  <text class="caption" x="112" y="177">Embeddings are passed directly to graph convolution over the dependency adjacency matrix.</text>
+
+  <rect class="box" x="285" y="143" width="145" height="78"/>
+  <text class="label" x="357.5" y="175" text-anchor="middle">Embeddings</text>
+  <text class="small" x="357.5" y="197" text-anchor="middle">word + POS + NER</text>
+
+  <rect class="box-navy" x="490" y="143" width="145" height="78"/>
+  <text class="label" x="562.5" y="175" text-anchor="middle">Graph Conv</text>
+  <text class="small" x="562.5" y="197" text-anchor="middle">2 GCN layers</text>
+
+  <rect class="box-teal" x="695" y="143" width="145" height="78"/>
+  <text class="label" x="767.5" y="175" text-anchor="middle">Pooling</text>
+  <text class="small" x="767.5" y="197" text-anchor="middle">graph + entities</text>
+
+  <rect class="box" x="900" y="143" width="145" height="78"/>
+  <text class="label" x="972.5" y="175" text-anchor="middle">Classifier</text>
+  <text class="small" x="972.5" y="197" text-anchor="middle">relation logits</text>
+
+  <path class="arrow" d="M430 182 L490 182"/>
+  <path class="arrow" d="M635 182 L695 182"/>
+  <path class="arrow" d="M840 182 L900 182"/>
+
+  <text class="metric" x="1090" y="151">Params: 2,581</text>
+  <text class="metric" x="1090" y="176">CPU forward: Passed</text>
+  <text class="metric" x="1090" y="201">Logits: [2, 5]</text>
+  <text class="metric" x="1090" y="226">Pooled: [2, 12]</text>
+
+  <rect class="lane" x="55" y="306" width="1210" height="175"/>
+  <circle class="accent2" cx="91" cy="341" r="9"/>
+  <text class="lane-title" x="112" y="348">C-GCN</text>
+  <text class="caption" x="112" y="371">Adds a BiLSTM contextual encoder before graph convolution, then uses the same pooling/classification pattern.</text>
+
+  <rect class="box" x="225" y="348" width="135" height="78"/>
+  <text class="label" x="292.5" y="380" text-anchor="middle">Embeddings</text>
+  <text class="small" x="292.5" y="402" text-anchor="middle">word + POS + NER</text>
+
+  <rect class="box-highlight" x="420" y="348" width="135" height="78"/>
+  <text class="label" x="487.5" y="380" text-anchor="middle">BiLSTM</text>
+  <text class="small" x="487.5" y="402" text-anchor="middle">contextual encoder</text>
+
+  <rect class="box-navy" x="615" y="348" width="135" height="78"/>
+  <text class="label" x="682.5" y="380" text-anchor="middle">Graph Conv</text>
+  <text class="small" x="682.5" y="402" text-anchor="middle">2 GCN layers</text>
+
+  <rect class="box-teal" x="810" y="348" width="135" height="78"/>
+  <text class="label" x="877.5" y="380" text-anchor="middle">Pooling</text>
+  <text class="small" x="877.5" y="402" text-anchor="middle">graph + entities</text>
+
+  <rect class="box" x="1005" y="348" width="135" height="78"/>
+  <text class="label" x="1072.5" y="380" text-anchor="middle">Classifier</text>
+  <text class="small" x="1072.5" y="402" text-anchor="middle">relation logits</text>
+
+  <path class="arrow" d="M360 387 L420 387"/>
+  <path class="arrow" d="M555 387 L615 387"/>
+  <path class="arrow" d="M750 387 L810 387"/>
+  <path class="arrow" d="M945 387 L1005 387"/>
+
+  <text class="metric" x="1148" y="351">Params: 4,261</text>
+  <text class="metric" x="1148" y="376">CPU forward: Passed</text>
+  <text class="metric" x="1148" y="401">Logits: [2, 5]</text>
+  <text class="metric" x="1148" y="426">Pooled: [2, 12]</text>
+
+  <line class="rule" x1="55" y1="513" x2="1265" y2="513"/>
+  <text class="caption" x="660" y="536" text-anchor="middle">Counts come from tools/inspect_architectures.py and correspond to the lightweight inspection configuration, not a full TACRED training setup.</text>
+</svg>
